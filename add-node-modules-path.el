@@ -32,7 +32,13 @@
 ;;; Code:
 
 ;;;###autoload
+(defvar add-node-modules-path-debug nil
+  "Enable verbose output when non nil.")
+
+;;;###autoload
 (defun add-node-modules-path ()
+  "Search the current buffer's parent directories for `node_modules/.bin`.
+If it's found, then add it to the `exec-path'."
   (let* ((root (locate-dominating-file
                 (or (buffer-file-name) default-directory)
                 "node_modules"))
@@ -42,8 +48,10 @@
         (progn
           (make-local-variable 'exec-path)
           (add-to-list 'exec-path path)
-          (message "added node_modules to exec-path"))
-      (message "node_modules not found"))))
+          (when add-node-modules-path-debug
+            (message (concat "added " path  " to exec-path"))))
+      (when add-node-modules-path-debug
+        (message (concat "node_modules not found in " root))))))
 
 (provide 'add-node-modules-path)
 
