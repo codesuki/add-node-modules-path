@@ -39,6 +39,7 @@
 (defun add-node-modules-path ()
   "Search the current buffer's parent directories for `node_modules/.bin`.
 If it's found, then add it to the `exec-path'."
+  (interactive)
   (let* ((root (locate-dominating-file
                 (or (buffer-file-name) default-directory)
                 "node_modules"))
