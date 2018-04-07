@@ -45,9 +45,9 @@ Any path found is added to the `exec-path'."
          (home (expand-file-name "~"))
          (root (expand-file-name (locate-dominating-file file "node_modules")))
          (roots '()))
-    (while (not (string= root home))
+    (while (and root (not (string= root home)))
       (let ((bindir (expand-file-name "node_modules/.bin/" root)))
-        (when (and root (file-directory-p bindir))
+        (when (file-directory-p bindir)
           (add-to-list 'roots bindir)))
       (setq root (directory-file-name (file-name-directory root))))
     (if roots
