@@ -38,21 +38,28 @@
 ;;;###autoload
 (defun add-node-modules-path ()
   "Search the current buffer's parent directories for `node_modules/.bin`.
-If it's found, then add it to the `exec-path'."
+Traverse the directory structure up, until reaching the user's home directory.
+Any path found is added to the `exec-path'."
   (interactive)
-  (let* ((root (locate-dominating-file
-                (or (buffer-file-name) default-directory)
-                "node_modules"))
-         (path (and root
-                    (expand-file-name "node_modules/.bin/" root))))
-    (if root
+  (let* ((file (or (buffer-file-name) default-directory))
+         (home (expand-file-name "~"))
+         (root (expand-file-name (locate-dominating-file file "node_modules")))
+         (roots '()))
+    (while (and root (not (string= root home)))
+      (let ((bindir (expand-file-name "node_modules/.bin/" root)))
+        (when (file-directory-p bindir)
+          (add-to-list 'roots bindir)))
+      (setq root (directory-file-name (file-name-directory root))))
+    (if roots
         (progn
           (make-local-variable 'exec-path)
-          (add-to-list 'exec-path path)
-          (when add-node-modules-path-debug
-            (message (concat "added " path  " to exec-path"))))
+          (while roots
+            (add-to-list 'exec-path (car roots))
+            (when add-node-modules-path-debug
+              (message (concat "added " (car roots) " to exec-path")))
+            (setq roots (cdr roots))))
       (when add-node-modules-path-debug
-        (message (concat "node_modules not found in " root))))))
+        (message (concat "node_modules/.bin not found for " file))))))
 
 (provide 'add-node-modules-path)
 
