@@ -47,11 +47,13 @@ Any path found is added to the `exec-path'."
          (home (expand-file-name "~"))
          (root (and path (expand-file-name path)))
          (roots '()))
-    (while (and root (not (string= root home)))
+    (while root
       (let ((bindir (expand-file-name "node_modules/.bin/" root)))
         (when (file-directory-p bindir)
           (add-to-list 'roots bindir)))
-      (setq root (directory-file-name (file-name-directory root))))
+      (if (string= root home)
+          (setq root nil)
+        (setq root (directory-file-name (file-name-directory root)))))
     (if roots
         (progn
           (make-local-variable 'exec-path)
