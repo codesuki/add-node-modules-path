@@ -43,8 +43,9 @@ Traverse the directory structure up, until reaching the user's home directory.
 Any path found is added to the `exec-path'."
   (interactive)
   (let* ((file (or (buffer-file-name) default-directory))
+         (path (locate-dominating-file file "node_modules"))
          (home (expand-file-name "~"))
-         (root (expand-file-name (locate-dominating-file file "node_modules")))
+         (root (and path (expand-file-name path)))
          (roots '()))
     (while (and root (not (string= root home)))
       (let ((bindir (expand-file-name "node_modules/.bin/" root)))
