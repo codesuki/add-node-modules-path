@@ -32,8 +32,9 @@
 ;;; Code:
 
 ;;;###autoload
-(defvar add-node-modules-path-debug nil
-  "Enable verbose output when non nil.")
+(defcustom add-node-modules-path-debug nil
+  "Enable verbose output when non nil."
+  :type 'boolean)
 
 ;;;###autoload
 (defun add-node-modules-path ()
