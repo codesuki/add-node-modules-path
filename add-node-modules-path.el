@@ -37,17 +37,24 @@
   :type 'boolean)
 
 ;;;###autoload
+(defcustom add-node-modules-max-depth 20
+  "Max depth to look for node_modules."
+  :type 'integer)
+
+;;;###autoload
 (defun add-node-modules-path ()
   "Search the current buffer's parent directories for `node_modules/.bin`.
-Traverse the directory structure up, until reaching the user's home directory.
+Traverse the directory structure up, until reaching the user's home directory,
+ or hitting add-node-modules-max-depth.
 Any path found is added to the `exec-path'."
   (interactive)
   (let* ((file (or (buffer-file-name) default-directory))
-         (path (locate-dominating-file file "node_modules"))
          (home (expand-file-name "~"))
-         (root (and path (expand-file-name path)))
+         (iterations add-node-modules-max-depth)
+         (root (directory-file-name (or (file-name-directory (buffer-file-name)) default-directory)))
          (roots '()))
-    (while root
+    (while (and root (> iterations 0))
+      (setq iterations (1- iterations))
       (let ((bindir (expand-file-name "node_modules/.bin/" root)))
         (when (file-directory-p bindir)
           (add-to-list 'roots bindir)))
