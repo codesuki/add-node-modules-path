@@ -48,10 +48,10 @@ Traverse the directory structure up, until reaching the user's home directory,
  or hitting add-node-modules-max-depth.
 Any path found is added to the `exec-path'."
   (interactive)
-  (let* ((file (or (buffer-file-name) default-directory))
+  (let* ((file (or (buffer-file-name) (expand-file-name default-directory)))
          (home (expand-file-name "~"))
          (iterations add-node-modules-max-depth)
-         (root (directory-file-name (or (file-name-directory (buffer-file-name)) default-directory)))
+         (root (directory-file-name (or (and (buffer-file-name) (file-name-directory (buffer-file-name))) (expand-file-name default-directory))))
          (roots '()))
     (while (and root (> iterations 0))
       (setq iterations (1- iterations))
