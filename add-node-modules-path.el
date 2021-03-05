@@ -31,15 +31,22 @@
 
 ;;; Code:
 
+(defgroup add-node-modules-path nil
+  "Put node_modules binaries into `exec-path'."
+  :prefix "add-node-modules-path-"
+  :group 'environment)
+
 ;;;###autoload
 (defcustom add-node-modules-path-debug nil
   "Enable verbose output when non nil."
-  :type 'boolean)
+  :type 'boolean
+  :group 'add-node-modules-path)
 
 ;;;###autoload
 (defcustom add-node-modules-max-depth 20
   "Max depth to look for node_modules."
-  :type 'integer)
+  :type 'integer
+  :group 'add-node-modules-path)
 
 ;;;###autoload
 (defun add-node-modules-path ()
