@@ -30,6 +30,11 @@
 
 ;;; Code:
 
+(defgroup add-node-modules-path nil
+  "Put node_modules binaries into `exec-path'."
+  :prefix "add-node-modules-path-"
+  :group 'environment)
+
 ;;;###autoload
 (defcustom add-node-modules-path-command "npm bin"
   "Command to find the bin path."
@@ -38,7 +43,8 @@
 ;;;###autoload
 (defcustom add-node-modules-path-debug nil
   "Enable verbose output when non nil."
-  :type 'boolean)
+  :type 'boolean
+  :group 'add-node-modules-path)
 
 ;;;###autoload
 (defun add-node-modules-path ()
