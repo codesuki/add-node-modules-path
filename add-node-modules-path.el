@@ -12,9 +12,10 @@
 
 ;;; Commentary:
 ;;
-;; This file provides `add-node-modules-path', which runs `npm bin` and
-;; and adds the path to the buffer local `exec-path'.
-;; This allows Emacs to find project based installs of e.g. eslint.
+;; This file provides `add-node-modules-path', which runs `npm bin`
+;; recursively through up directory tree and and adds the path to the
+;; buffer local `exec-path'.  This allows Emacs to find project based
+;; installs of e.g. eslint.
 ;;
 ;; Usage:
 ;;     M-x add-node-modules-path
@@ -38,8 +39,13 @@
   :group 'environment)
 
 ;;;###autoload
-(defcustom add-node-modules-path-command "npm bin"
+(defcustom add-node-modules-path-command-bin "npm bin"
   "Command to find the bin path."
+  :type 'string)
+
+;;;###autoload
+(defcustom add-node-modules-path-command-root "npm root"
+  "Command to find the root path."
   :type 'string)
 
 ;;;###autoload
@@ -54,22 +60,24 @@
 If `npm` command fails, it does nothing."
   (interactive)
 
-  (let* ((res (s-chomp (shell-command-to-string add-node-modules-path-command)))
-         (exists (file-exists-p res))
-         )
+  (let* ((root-directory (s-chomp (shell-command-to-string add-node-modules-path-command-root)))
+         (bin-directory (s-chomp (shell-command-to-string add-node-modules-path-command-bin)))
+         (exists (file-exists-p bin-directory))
+         (isRoot (string= (directory-file-name (file-name-directory root-directory)) "/")))
     (cond
-     (exists
-      (make-local-variable 'exec-path)
-      (add-to-list 'exec-path res)
-      (when add-node-modules-path-debug
-        (message "Added to `exec-path`: %s" res))
-      )
+     ((not isRoot)
+      (unless (local-variable-p 'exec-path)
+        (make-local-variable 'exec-path))
+      (when exists
+        (add-to-list 'exec-path bin-directory)
+        (when add-node-modules-path-debug
+          (message "Added to `exec-path`: %s" bin-directory)))
+      (cd (concat root-directory "/../.."))
+      (add-node-modules-path))
      (t
+      (cd (file-name-directory (buffer-file-name)))
       (when add-node-modules-path-debug
-        (message "Failed to run `%s':\n %s" add-node-modules-path-command res))
-      ))
-    )
-  )
+        (message "Found root directory"))))))
 
 (provide 'add-node-modules-path)
 
