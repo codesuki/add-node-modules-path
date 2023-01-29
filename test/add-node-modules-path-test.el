@@ -56,3 +56,56 @@
       (should (eq (add-node-modules-path/get-invalid-executions elt) nil)))
     (dolist (elt test-data)
       (should (equal (add-node-modules-path/get-invalid-executions (car elt)) (cadr elt))))))
+
+(ert-deftest add-node-modules-path-single-command-test ()
+  ;; remove any local binding of EXEC-PATH, if present
+  (kill-local-variable 'exec-path)
+  ;; prepare environment
+  (make-local-variable 'add-node-modules-path-debug)
+  (setq add-node-modules-path-debug nil)
+  (make-local-variable 'add-node-modules-path-command)
+  (setq add-node-modules-path-command "echo \"/etc\"")
+  ;; run interactive command, which will create local binding of EXEC-PATH and add to it
+  (add-node-modules-path)
+  ;; checks
+  (should (eq (local-variable-p 'exec-path) t))
+  (should (equal (car exec-path) "/etc"))
+  ;; env cleanup
+  (kill-local-variable 'add-node-modules-path-debug)
+  (kill-local-variable 'add-node-modules-path-command))
+  
+(ert-deftest add-node-modules-path-multiple-commands-test ()
+  ;; remove any local binding of EXEC-PATH, if present
+  (kill-local-variable 'exec-path)
+  ;; prepare environment
+  (make-local-variable 'add-node-modules-path-debug)
+  (setq add-node-modules-path-debug nil)
+  (make-local-variable 'add-node-modules-path-command)
+  (setq add-node-modules-path-command "echo \"/etc\", echo \"/var\"")
+  ;; run interactive command, which will create local binding of EXEC-PATH and add to it
+  (add-node-modules-path)
+  ;; checks
+  (should (eq (local-variable-p 'exec-path) t))
+  (should (equal (car exec-path) "/etc"))
+  (should (equal (cadr exec-path) "/var"))
+  ;; env cleanup
+  (kill-local-variable 'add-node-modules-path-debug)
+  (kill-local-variable 'add-node-modules-path-command))
+  
+(ert-deftest add-node-modules-path-multiple-commands-with-failures-test ()
+  ;; remove any local binding of EXEC-PATH, if present
+  (kill-local-variable 'exec-path)
+  ;; prepare environment
+  (make-local-variable 'add-node-modules-path-debug)
+  (setq add-node-modules-path-debug nil)
+  (make-local-variable 'add-node-modules-path-command)
+  (setq add-node-modules-path-command "ls -al, echo \"/var\", date, echo \"/etc\", clear")
+  ;; run interactive command, which will create local binding of EXEC-PATH and add to it
+  (add-node-modules-path)
+  ;; checks
+  (should (eq (local-variable-p 'exec-path) t))
+  (should (equal (car exec-path) "/var"))
+  (should (equal (cadr exec-path) "/etc"))
+  ;; env cleanup
+  (kill-local-variable 'add-node-modules-path-debug)
+  (kill-local-variable 'add-node-modules-path-command))
