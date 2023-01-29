@@ -29,7 +29,7 @@
 ;;       '(add-hook 'js2-mode-hook #'add-node-modules-path))
 
 ;;; Code:
-
+(require 'seq)
 (require 's)
 
 (defgroup add-node-modules-path nil
@@ -39,7 +39,8 @@
 
 ;;;###autoload
 (defcustom add-node-modules-path-command "npm bin"
-  "Command to find the bin path."
+  "Command to find the bin path. To add multiple bin paths, specify a
+comma-separated list of commands, e.g. 'pnpm bin, pnpm bin -w'"
   :type 'string)
 
 ;;;###autoload
@@ -48,29 +49,69 @@
   :type 'boolean
   :group 'add-node-modules-path)
 
+(defun add-node-modules-path/split-comma-separated-list (list-as-string)
+  "Interprets the provided LIST-AS-STRING argument as comma-separated list of strings
+and returns the values as list. Values are trimmed and empty values are removed."
+  (if (stringp list-as-string)
+      (seq-filter 's-present? (mapcar 's-trim (s-split "," list-as-string t)))))
+
+(defun add-node-modules-path/exec-command (command)
+  "Executes the given COMMAND and returns a plist containing the command, its shell execution result
+and a boolean indicating, whether the execution result denotes a valid directory"
+  (if (and (stringp command) (s-present? command))
+      (let ((result (s-chomp (shell-command-to-string command))))
+	(list 'command command 'result result 'directory-p (file-directory-p result)))))
+
+(defun add-node-modules-path/exec-command-list (command-list)
+  "Executes all commands in COMMAND-LIST and returns a list of plists containing the various
+comnand execution results. Elements in COMMAND-LIST which are not strings are ignored
+and will not appear in the result."
+  (if (listp command-list)
+      (seq-filter 'consp (mapcar 'add-node-modules-path/exec-command command-list))))
+
+(defun add-node-modules-path/get-valid-directories (command-executions)
+  "Filters the provided COMMAND-EXECUTIONS for entries, whose execution result denotes
+an existing directory"
+  (if (listp command-executions)
+      (let ((filtered (seq-filter '(lambda (elt) (plist-get elt 'directory-p)) command-executions)))
+	(mapcar #'(lambda (elt) (plist-get elt 'result)) filtered))))
+
+(defun add-node-modules-path/get-invalid-executions (command-executions)
+  "Filters the provided COMMAND-EXECUTIONS for entries, whose execution result denotes
+an invalid or non-existing directory"
+  (if (listp command-executions)
+      (seq-filter #'(lambda (elt) (and (plist-member elt 'directory-p) (not (plist-get elt 'directory-p)))) command-executions)))
+
+(defun add-node-modules-path/warn-about-failed-executions (command-executions)
+  "Displays warnings about all failed COMMAND-EXECUTIONS."
+  (let ((failed (add-node-modules-path/get-invalid-executions command-executions)))
+    (dolist (elt failed)
+      (let ((cmd (plist-get elt 'command))
+	    (path (plist-get elt 'result)))
+	(display-warning 'add-node-modules-path (format-message "Failed to run `%s':\n %s" cmd path))))))
+
+(defun add-node-modules-path/add-to-list-multiple (list to-add)
+  "Adds multiple items to LIST."
+  (dolist (item to-add)
+    (add-to-list list item)))
+
 ;;;###autoload
 (defun add-node-modules-path ()
   "Run `npm bin` command and add the path to the `exec-path`.
 If `npm` command fails, it does nothing."
   (interactive)
-
-  (let* ((res (s-chomp (shell-command-to-string add-node-modules-path-command)))
-         (exists (file-exists-p res))
-         )
-    (cond
-     (exists
-      (make-local-variable 'exec-path)
-      (add-to-list 'exec-path res)
-      (when add-node-modules-path-debug
-        (message "Added to `exec-path`: %s" res))
-      )
-     (t
-      (when add-node-modules-path-debug
-        (message "Failed to run `%s':\n %s" add-node-modules-path-command res))
-      ))
-    )
-  )
-
+  (let* ((commands (add-node-modules-path/split-comma-separated-list add-node-modules-path-command))
+         (executions (add-node-modules-path/exec-command-list commands))
+         (dirs (add-node-modules-path/get-valid-directories executions)))
+    (if (length> dirs 0)
+	(progn
+	  (make-local-variable 'exec-path)
+	  (add-node-modules-path/add-to-list-multiple 'exec-path (reverse dirs))
+	  (if add-node-modules-path-debug
+	      (message "Added to `exec-path`: %s" (s-join ", " dirs)))))
+    (if add-node-modules-path-debug
+	(add-node-modules-path/warn-about-failed-executions executions))))
+	
 (provide 'add-node-modules-path)
 
 ;;; add-node-modules-path.el ends here
