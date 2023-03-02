@@ -38,7 +38,7 @@
   :group 'environment)
 
 ;;;###autoload
-(defcustom add-node-modules-path-command "npm bin"
+(defcustom add-node-modules-path-command "npm prefix"
   "Command to find the bin path."
   :type 'string)
 
@@ -54,7 +54,7 @@
 If `npm` command fails, it does nothing."
   (interactive)
 
-  (let* ((res (s-chomp (shell-command-to-string add-node-modules-path-command)))
+  (let* ((res (concat (s-chomp (shell-command-to-string add-node-modules-path-command)) "/node_modules/.bin"))
          (exists (file-exists-p res))
          )
     (cond
