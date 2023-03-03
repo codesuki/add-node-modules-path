@@ -38,10 +38,15 @@
   :group 'environment)
 
 ;;;###autoload
-(defcustom add-node-modules-path-command "npm bin"
-  "Command to find the bin path. To add multiple bin paths, specify a
-comma-separated list of commands, e.g. 'pnpm bin, pnpm bin -w'"
-  :type 'string)
+(defcustom add-node-modules-path-command '("npm bin")
+  "Command(s) to find the bin path. To add multiple bin paths, simply add
+multiple commands to the list, e.g. \\='(\"pnpm bin\" \"pnpm bin -w\")"
+  :type '(repeat string)
+  :set (lambda (symbol value)
+	 "Converts a non-list value to a single-element list of the same value.
+This is necessary to be backward compatible, since previous versions of this
+custom var were of type string."
+	 (set-default symbol (if (listp value) value (list value)))))
 
 ;;;###autoload
 (defcustom add-node-modules-path-debug nil
@@ -49,36 +54,36 @@ comma-separated list of commands, e.g. 'pnpm bin, pnpm bin -w'"
   :type 'boolean
   :group 'add-node-modules-path)
 
-(defun add-node-modules-path/split-comma-separated-list (list-as-string)
-  "Interprets the provided LIST-AS-STRING argument as comma-separated list of strings
-and returns the values as list. Values are trimmed and empty values are removed."
-  (if (stringp list-as-string)
-      (seq-filter 's-present? (mapcar 's-trim (s-split "," list-as-string t)))))
+(defun add-node-modules-path/trim-list-and-elements (list)
+  "Trims all string values in LIST and empty / non-string values are removed."
+  (if (listp list)
+      (seq-filter 's-present? (mapcar 's-trim (seq-filter 'stringp list)))))
 
 (defun add-node-modules-path/exec-command (command)
-  "Executes the given COMMAND and returns a plist containing the command, its shell execution result
-and a boolean indicating, whether the execution result denotes a valid directory"
+  "Executes the given COMMAND and returns a plist containing the command, 
+its shell execution result and a boolean indicating, whether the execution
+result denotes a valid directory"
   (if (and (stringp command) (s-present? command))
       (let ((result (s-chomp (shell-command-to-string command))))
 	(list 'command command 'result result 'directory-p (file-directory-p result)))))
 
 (defun add-node-modules-path/exec-command-list (command-list)
-  "Executes all commands in COMMAND-LIST and returns a list of plists containing the various
-comnand execution results. Elements in COMMAND-LIST which are not strings are ignored
-and will not appear in the result."
+  "Executes all commands in COMMAND-LIST and returns a list of plists
+containing the various command execution results. Elements in COMMAND-LIST which
+are not strings are ignoredand will not appear in the result."
   (if (listp command-list)
       (seq-filter 'consp (mapcar 'add-node-modules-path/exec-command command-list))))
 
 (defun add-node-modules-path/get-valid-directories (command-executions)
-  "Filters the provided COMMAND-EXECUTIONS for entries, whose execution result denotes
-an existing directory"
+  "Filters the provided COMMAND-EXECUTIONS for entries, whose execution result
+denotes an existing directory"
   (if (listp command-executions)
       (let ((filtered (seq-filter '(lambda (elt) (plist-get elt 'directory-p)) command-executions)))
 	(mapcar #'(lambda (elt) (plist-get elt 'result)) filtered))))
 
 (defun add-node-modules-path/get-invalid-executions (command-executions)
-  "Filters the provided COMMAND-EXECUTIONS for entries, whose execution result denotes
-an invalid or non-existing directory"
+  "Filters the provided COMMAND-EXECUTIONS for entries, whose execution result
+denotes an invalid or non-existing directory"
   (if (listp command-executions)
       (seq-filter #'(lambda (elt) (and (plist-member elt 'directory-p) (not (plist-get elt 'directory-p)))) command-executions)))
 
@@ -100,7 +105,7 @@ an invalid or non-existing directory"
   "Run `npm bin` command and add the path to the `exec-path`.
 If `npm` command fails, it does nothing."
   (interactive)
-  (let* ((commands (add-node-modules-path/split-comma-separated-list add-node-modules-path-command))
+  (let* ((commands (add-node-modules-path/trim-list-and-elements add-node-modules-path-command))
          (executions (add-node-modules-path/exec-command-list commands))
          (dirs (add-node-modules-path/get-valid-directories executions)))
     (if (length> dirs 0)

@@ -2,15 +2,15 @@
 ;;
 ;;
 
-(ert-deftest add-node-modules-path/split-comma-separated-list-test ()
-  (should (equal (add-node-modules-path/split-comma-separated-list "pnpm bin, pnpm bin -w,  ls -al   ")
+(ert-deftest add-node-modules-path/trim-list-and-elements-test ()
+  (should (equal (add-node-modules-path/trim-list-and-elements '("pnpm bin" "pnpm bin -w" "ls -al   "))
 		 '("pnpm bin" "pnpm bin -w" "ls -al")))
-  (should (equal (add-node-modules-path/split-comma-separated-list "  pnpm bin -w") '("pnpm bin -w")))
-  (should (equal (add-node-modules-path/split-comma-separated-list ",,, ls -al ,  ,,") '("ls -al")))
-  (should (eq (add-node-modules-path/split-comma-separated-list "") nil))
-  (should (eq (add-node-modules-path/split-comma-separated-list "    ") nil))
-  (should (eq (add-node-modules-path/split-comma-separated-list "   ,  ,,  ,") nil)))
-
+  (should (equal (add-node-modules-path/trim-list-and-elements '("  pnpm bin -w")) '("pnpm bin -w")))
+  (should (equal (add-node-modules-path/trim-list-and-elements '(nil "" " ls -al " "" nil "" nil)) '("ls -al")))
+  (should (eq (add-node-modules-path/trim-list-and-elements "") nil))
+  (should (eq (add-node-modules-path/trim-list-and-elements "    ") nil))
+  (should (eq (add-node-modules-path/trim-list-and-elements 1701) nil))
+  (should (eq (add-node-modules-path/trim-list-and-elements "a string") nil)))
 
 (ert-deftest add-node-modules-path/exec-command-test ()
   (should (eq (add-node-modules-path/exec-command nil) nil))
@@ -78,10 +78,10 @@
   (kill-local-variable 'add-node-modules-path-command))
 
 (ert-deftest add-node-modules-path-single-command-test ()
-  (add-node-modules-path/exec-add-node-modules-path-test "echo \"/etc\"" '("/etc")))
+  (add-node-modules-path/exec-add-node-modules-path-test '("echo \"/usr\"") '("/usr")))
 
 (ert-deftest add-node-modules-path-multiple-commands-test ()
-  (add-node-modules-path/exec-add-node-modules-path-test "echo \"/etc\", echo \"/var\"" '("/etc" "/var")))
+  (add-node-modules-path/exec-add-node-modules-path-test '("echo \"/etc\"" "echo \"/var\"") '("/etc" "/var")))
   
 (ert-deftest add-node-modules-path-multiple-commands-with-failures-test ()
-  (add-node-modules-path/exec-add-node-modules-path-test "ls -al, echo \"/var\", date, echo \"/etc\", clear" '("/var" "/etc")))
+  (add-node-modules-path/exec-add-node-modules-path-test '("ls -al" "echo \"/var\"" "date" "echo \"/etc\"" "clear") '("/var" "/etc")))
