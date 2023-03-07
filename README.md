@@ -17,3 +17,13 @@ To automatically run it when opening a new buffer:
 (eval-after-load 'js-mode
   '(add-hook 'js-mode-hook #'add-node-modules-path))
 ```
+
+## Monorepo Support
+In a monorepo scenario it might make sense to add multiple directories.
+To achieve this, additional commands can be specified:
+
+```
+(use-package add-node-modules-path
+  :custom
+  (add-node-modules-path-command '("pnpm bin" "pnpm bin -w"))) 
+```
